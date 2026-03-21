@@ -18,8 +18,8 @@ public class StalwartConfiguration extends AbstractRestConfiguration {
     private long defaultQuotaBytes = 1073741824L; // 1GB
 
     @ConfigurationProperty(
-            displayMessageKey = "stalwart.defaultTenant",
-            helpMessageKey = "stalwart.defaultTenant.help",
+            displayMessageKey = "defaultTenant.display",
+            helpMessageKey = "defaultTenant.help",
             order = 10
     )
     public String getDefaultTenant() {
@@ -31,8 +31,8 @@ public class StalwartConfiguration extends AbstractRestConfiguration {
     }
 
     @ConfigurationProperty(
-            displayMessageKey = "stalwart.defaultDomain",
-            helpMessageKey = "stalwart.defaultDomain.help",
+            displayMessageKey = "defaultDomain.display",
+            helpMessageKey = "defaultDomain.help",
             order = 11,
             required = true
     )
@@ -45,8 +45,8 @@ public class StalwartConfiguration extends AbstractRestConfiguration {
     }
 
     @ConfigurationProperty(
-            displayMessageKey = "stalwart.defaultQuotaBytes",
-            helpMessageKey = "stalwart.defaultQuotaBytes.help",
+            displayMessageKey = "defaultQuotaBytes.display",
+            helpMessageKey = "defaultQuotaBytes.help",
             order = 12
     )
     public long getDefaultQuotaBytes() {
