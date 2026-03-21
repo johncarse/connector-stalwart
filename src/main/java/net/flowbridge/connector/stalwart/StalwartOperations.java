@@ -9,13 +9,20 @@ import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.util.*;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,11 +49,52 @@ public class StalwartOperations {
     private final StalwartConfiguration config;
     private final AbstractRestConnector<?> connector;
     private final ObjectMapper mapper = new ObjectMapper();
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final HttpClient httpClient;
 
     public StalwartOperations(StalwartConfiguration config, AbstractRestConnector<?> connector) {
         this.config = config;
         this.connector = connector;
+        this.httpClient = createHttpClient(config);
+    }
+
+    private static HttpClient createHttpClient(StalwartConfiguration config) {
+        try {
+            SSLContext sslContext;
+            if (config.getTrustAllCertificates()) {
+                sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, new javax.net.ssl.TrustManager[]{
+                        new javax.net.ssl.X509TrustManager() {
+                            public java.security.cert.X509Certificate[] getAcceptedIssuers() { return new java.security.cert.X509Certificate[0]; }
+                            public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
+                            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
+                        }
+                }, new SecureRandom());
+            } else {
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                KeyStore trustStore = null;
+                for (String path : new String[]{
+                        System.getProperty("javax.net.ssl.trustStore"),
+                        System.getenv("JAVA_HOME") + "/lib/security/cacerts",
+                        "/etc/ssl/certs/java/cacerts",
+                        "/etc/pki/java/cacerts"
+                }) {
+                    if (path != null && Files.exists(Path.of(path))) {
+                        trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                        try (InputStream is = Files.newInputStream(Path.of(path))) {
+                            trustStore.load(is, "changeit".toCharArray());
+                        }
+                        break;
+                    }
+                }
+                tmf.init(trustStore);
+                sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, tmf.getTrustManagers(), new SecureRandom());
+            }
+            return HttpClient.newBuilder().sslContext(sslContext).build();
+        } catch (Exception e) {
+            LOG.warn("Failed to create SSL context, falling back to default: {0}", e.getMessage());
+            return HttpClient.newHttpClient();
+        }
     }
 
     // ---- API Helpers ----
