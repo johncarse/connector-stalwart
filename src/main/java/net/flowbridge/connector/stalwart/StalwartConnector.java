@@ -113,15 +113,6 @@ public class StalwartConnector
     }
 
     @Override
-    public Set<AttributeDelta> updateDelta(ObjectClass objectClass, Uid uid,
-                                           Set<AttributeDelta> modifications,
-                                           OperationOptions options) {
-        validateObjectClass(objectClass);
-        LOG.info("Updating Stalwart principal: {0}", uid.getUidValue());
-        return operations.updatePrincipal(uid, modifications);
-    }
-
-    @Override
     public Uid update(ObjectClass objectClass, Uid uid, Set<Attribute> replaceAttributes,
                       OperationOptions options) {
         validateObjectClass(objectClass);

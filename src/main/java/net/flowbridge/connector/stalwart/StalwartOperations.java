@@ -160,32 +160,22 @@ public class StalwartOperations {
 
         String principalName = null;
         for (Attribute attr : attributes) {
-            switch (attr.getName()) {
-                case Name.NAME:
-                    principalName = AttributeUtil.getStringValue(attr);
-                    principal.put("name", principalName);
-                    break;
-                case OperationalAttributes.ENABLE_NAME:
-                    // Stalwart doesn't have a direct "enabled" field on create —
-                    // disabling is done by removing auth capabilities
-                    break;
-                case StalwartConnector.ATTR_EMAILS:
-                    ArrayNode emails = mapper.createArrayNode();
-                    attr.getValue().forEach(v -> emails.add(v.toString()));
-                    principal.set("emails", emails);
-                    break;
-                case StalwartConnector.ATTR_TYPE:
-                    principal.put("type", AttributeUtil.getStringValue(attr));
-                    break;
-                case StalwartConnector.ATTR_QUOTA:
-                    principal.put("quota", AttributeUtil.getLongValue(attr));
-                    break;
-                case StalwartConnector.ATTR_DESCRIPTION:
-                    principal.put("description", AttributeUtil.getStringValue(attr));
-                    break;
-                case StalwartConnector.ATTR_TENANT:
-                    principal.put("tenant", AttributeUtil.getStringValue(attr));
-                    break;
+            String attrName = attr.getName();
+            if (Name.NAME.equals(attrName)) {
+                principalName = AttributeUtil.getStringValue(attr);
+                principal.put("name", principalName);
+            } else if (StalwartConnector.ATTR_EMAILS.equals(attrName)) {
+                ArrayNode emails = mapper.createArrayNode();
+                attr.getValue().forEach(v -> emails.add(v.toString()));
+                principal.set("emails", emails);
+            } else if (StalwartConnector.ATTR_TYPE.equals(attrName)) {
+                principal.put("type", AttributeUtil.getStringValue(attr));
+            } else if (StalwartConnector.ATTR_QUOTA.equals(attrName)) {
+                principal.put("quota", AttributeUtil.getLongValue(attr));
+            } else if (StalwartConnector.ATTR_DESCRIPTION.equals(attrName)) {
+                principal.put("description", AttributeUtil.getStringValue(attr));
+            } else if (StalwartConnector.ATTR_TENANT.equals(attrName)) {
+                principal.put("tenant", AttributeUtil.getStringValue(attr));
             }
         }
 
@@ -230,39 +220,35 @@ public class StalwartOperations {
                 continue;
             }
 
-            switch (delta.getName()) {
-                case StalwartConnector.ATTR_DESCRIPTION:
-                    ObjectNode descOp = mapper.createObjectNode();
-                    descOp.put("action", "set");
-                    descOp.put("field", "description");
-                    descOp.put("value", delta.getValuesToReplace().get(0).toString());
-                    operations.add(descOp);
-                    break;
-                case StalwartConnector.ATTR_EMAILS:
-                    ObjectNode emailOp = mapper.createObjectNode();
-                    emailOp.put("action", "set");
-                    emailOp.put("field", "emails");
-                    ArrayNode emails = mapper.createArrayNode();
-                    delta.getValuesToReplace().forEach(v -> emails.add(v.toString()));
-                    emailOp.set("value", emails);
-                    operations.add(emailOp);
-                    break;
-                case StalwartConnector.ATTR_QUOTA:
-                    ObjectNode quotaOp = mapper.createObjectNode();
-                    quotaOp.put("action", "set");
-                    quotaOp.put("field", "quota");
-                    quotaOp.put("value", (Long) delta.getValuesToReplace().get(0));
-                    operations.add(quotaOp);
-                    break;
-                case OperationalAttributes.ENABLE_NAME:
-                    // Enable/disable by modifying authentication capabilities
-                    ObjectNode enableOp = mapper.createObjectNode();
-                    boolean enabled = (Boolean) delta.getValuesToReplace().get(0);
-                    enableOp.put("action", "set");
-                    enableOp.put("field", "enabled");
-                    enableOp.put("value", enabled);
-                    operations.add(enableOp);
-                    break;
+            String name = delta.getName();
+            List<?> values = delta.getValuesToReplace();
+
+            if (StalwartConnector.ATTR_DESCRIPTION.equals(name)) {
+                ObjectNode descOp = mapper.createObjectNode();
+                descOp.put("action", "set");
+                descOp.put("field", "description");
+                descOp.put("value", values.get(0).toString());
+                operations.add(descOp);
+            } else if (StalwartConnector.ATTR_EMAILS.equals(name)) {
+                ObjectNode emailOp = mapper.createObjectNode();
+                emailOp.put("action", "set");
+                emailOp.put("field", "emails");
+                ArrayNode emails = mapper.createArrayNode();
+                values.forEach(v -> emails.add(v.toString()));
+                emailOp.set("value", emails);
+                operations.add(emailOp);
+            } else if (StalwartConnector.ATTR_QUOTA.equals(name)) {
+                ObjectNode quotaOp = mapper.createObjectNode();
+                quotaOp.put("action", "set");
+                quotaOp.put("field", "quota");
+                quotaOp.put("value", (Long) values.get(0));
+                operations.add(quotaOp);
+            } else if (OperationalAttributes.ENABLE_NAME.equals(name)) {
+                ObjectNode enableOp = mapper.createObjectNode();
+                enableOp.put("action", "set");
+                enableOp.put("field", "enabled");
+                enableOp.put("value", (Boolean) values.get(0));
+                operations.add(enableOp);
             }
         }
 
