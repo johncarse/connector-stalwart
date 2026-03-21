@@ -258,12 +258,22 @@ public class StalwartOperations {
 
         // Generate default emails if not provided
         if (!principal.has("emails") && principalName != null) {
-            String domain = config.getDefaultDomain();
+            String baseName;
+            String domain;
+            if (principalName.contains("@")) {
+                // Name already includes domain (e.g. testbot@ai.flowbridge.com)
+                int atIdx = principalName.indexOf('@');
+                baseName = principalName.substring(0, atIdx);
+                domain = principalName.substring(atIdx + 1);
+            } else {
+                baseName = principalName;
+                domain = config.getDefaultDomain();
+            }
             ArrayNode emails = mapper.createArrayNode();
-            emails.add(principalName + "@" + domain);
-            emails.add(principalName + "-support@" + domain);
-            emails.add(principalName + "-alerts@" + domain);
-            emails.add(principalName + "-notify@" + domain);
+            emails.add(baseName + "@" + domain);
+            emails.add(baseName + "-support@" + domain);
+            emails.add(baseName + "-alerts@" + domain);
+            emails.add(baseName + "-notify@" + domain);
             principal.set("emails", emails);
         }
 
