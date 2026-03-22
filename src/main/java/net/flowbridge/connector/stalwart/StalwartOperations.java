@@ -359,8 +359,10 @@ public class StalwartOperations {
         if (filter != null && (filter.getType() == StalwartFilter.FilterType.BY_UID
                 || filter.getType() == StalwartFilter.FilterType.BY_NAME)) {
             String name = filter.getValue();
+            LOG.info("Searching principal by UID/name: {0}", name);
             JsonNode principal = apiGet("/principal/" + URLEncoder.encode(name, StandardCharsets.UTF_8));
             if (principal != null) {
+                LOG.info("Found principal: {0}", principal.path("name").asText());
                 handler.handle(principalToConnectorObject(principal));
             }
             return;
@@ -396,6 +398,10 @@ public class StalwartOperations {
         builder.setObjectClass(new ObjectClass(StalwartConnector.OBJECT_CLASS_PRINCIPAL));
 
         String name = principal.path("name").asText();
+        if (name == null || name.isEmpty()) {
+            LOG.error("Principal has no 'name' field. JSON: {0}", principal.toString().substring(0, Math.min(200, principal.toString().length())));
+            throw new ConnectorException("Principal response missing 'name' field");
+        }
         builder.setUid(name);
         builder.setName(name);
 
