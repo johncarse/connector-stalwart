@@ -320,11 +320,12 @@ public class StalwartOperations {
                 quotaOp.put("value", (Long) values.get(0));
                 operations.add(quotaOp);
             } else if (OperationalAttributes.ENABLE_NAME.equals(name)) {
-                ObjectNode enableOp = mapper.createObjectNode();
-                enableOp.put("action", "set");
-                enableOp.put("field", "enabled");
-                enableOp.put("value", (Boolean) values.get(0));
-                operations.add(enableOp);
+                // Stalwart v0.15.5 principals don't have a native enabled/disabled field.
+                // Authentication is controlled by Keycloak OAuth — disabling the Keycloak
+                // client is what actually blocks agent access. Log for audit trail.
+                boolean enabled = (Boolean) values.get(0);
+                LOG.info("Stalwart principal {0} activation change: enabled={1} (no-op, controlled by Keycloak)",
+                        uid.getUidValue(), enabled);
             }
         }
 
