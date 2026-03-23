@@ -3,6 +3,7 @@ package net.flowbridge.connector.stalwart;
 import com.evolveum.polygon.rest.AbstractRestConnector;
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.common.security.GuardedString;
+import org.identityconnectors.common.security.GuardedString;
 import org.identityconnectors.framework.common.exceptions.AlreadyExistsException;
 import org.identityconnectors.framework.common.exceptions.ConnectorException;
 import org.identityconnectors.framework.common.exceptions.UnknownUidException;
@@ -262,6 +263,15 @@ public class StalwartOperations {
                 principal.put("description", AttributeUtil.getStringValue(attr));
             } else if (StalwartConnector.ATTR_TENANT.equals(attrName)) {
                 principal.put("tenant", AttributeUtil.getStringValue(attr));
+            } else if (OperationalAttributes.PASSWORD_NAME.equals(attrName)) {
+                GuardedString guardedPassword = AttributeUtil.getGuardedStringValue(attr);
+                if (guardedPassword != null) {
+                    StringBuilder password = new StringBuilder();
+                    guardedPassword.access(chars -> password.append(new String(chars)));
+                    ArrayNode secrets = mapper.createArrayNode();
+                    secrets.add(password.toString());
+                    principal.set("secrets", secrets);
+                }
             }
         }
 
@@ -274,6 +284,13 @@ public class StalwartOperations {
         }
         if (!principal.has("tenant") && config.getDefaultTenant() != null) {
             principal.put("tenant", config.getDefaultTenant());
+        }
+
+        // Default roles — grant JMAP/Sieve/email access
+        if (!principal.has("roles")) {
+            ArrayNode roles = mapper.createArrayNode();
+            roles.add("agent");
+            principal.set("roles", roles);
         }
 
         // Generate default emails if not provided
