@@ -154,6 +154,14 @@ public class StalwartOperations {
             }
 
             JsonNode body = mapper.readTree(response.body());
+            // Stalwart returns 200 with {"error":"notFound"} instead of 404
+            if (body.has("error")) {
+                String error = body.get("error").asText();
+                if ("notFound".equals(error)) {
+                    return null;
+                }
+                throw new ConnectorException("Stalwart API error on GET " + path + ": " + body);
+            }
             // Stalwart wraps responses in {"data": ...}
             return body.has("data") ? body.get("data") : body;
         } catch (IOException | InterruptedException e) {
@@ -172,9 +180,21 @@ public class StalwartOperations {
             if (response.statusCode() == 409) {
                 throw new AlreadyExistsException("Principal already exists");
             }
+            // Stalwart may return 200 with {"error":"..."} instead of proper HTTP error codes
+            String respBody = response.body();
+            if (respBody != null && respBody.contains("\"error\"")) {
+                JsonNode errJson = mapper.readTree(respBody);
+                if (errJson.has("error")) {
+                    String error = errJson.get("error").asText();
+                    if ("fieldAlreadyExists".equals(error)) {
+                        throw new AlreadyExistsException("Principal already exists: " + respBody);
+                    }
+                    throw new ConnectorException("Stalwart API error on POST " + path + ": " + respBody);
+                }
+            }
             if (response.statusCode() >= 400) {
                 throw new ConnectorException("Stalwart API error: HTTP "
-                        + response.statusCode() + " on POST " + path + ": " + response.body());
+                        + response.statusCode() + " on POST " + path + ": " + respBody);
             }
         } catch (IOException | InterruptedException e) {
             throw new ConnectorException("Stalwart API request failed: POST " + path, e);
