@@ -287,9 +287,11 @@ public class StalwartOperations {
         }
 
         // Default roles — grant JMAP/Sieve/email access
+        // Stalwart Enterprise requires tenant-scoped role names (domain-qualified)
         if (!principal.has("roles")) {
+            String domain = config.getDefaultDomain();
             ArrayNode roles = mapper.createArrayNode();
-            roles.add("agent");
+            roles.add("agent@" + domain);
             principal.set("roles", roles);
         }
 
