@@ -360,9 +360,11 @@ public class StalwartOperations {
                 || filter.getType() == StalwartFilter.FilterType.BY_NAME)) {
             String name = filter.getValue();
             LOG.info("Searching principal by UID/name: {0}", name);
-            JsonNode principal = apiGet("/principal/" + URLEncoder.encode(name, StandardCharsets.UTF_8));
+            String encodedPath = "/principal/" + URLEncoder.encode(name, StandardCharsets.UTF_8);
+            LOG.info("GET path: {0}", encodedPath);
+            JsonNode principal = apiGet(encodedPath);
             if (principal != null) {
-                LOG.info("Found principal: {0}", principal.path("name").asText());
+                LOG.info("Response JSON: {0}", principal.toString().substring(0, Math.min(300, principal.toString().length())));
                 handler.handle(principalToConnectorObject(principal));
             }
             return;
